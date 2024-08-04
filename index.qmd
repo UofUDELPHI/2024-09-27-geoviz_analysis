@@ -1,0 +1,49 @@
+---
+title: "Geographical Analysis & Visualization"
+subtitle: "University of Utah"
+---
+
+[![](DELPHI-long.png)](https://uofuhealth.utah.edu/delphi-data-science-initiative)
+
+
+::: {.callout-note appearance="simple" icon=false}
+**Date**: September 27, 2024
+
+**Time**: 9:00 am -- 1:00 pm MDT
+
+**Location**: HELIX Rm 1C202 (Narrowleaf)
+
+**Instructor**: Brenna Kelly
+:::
+
+**Registration**: Use the [following link](https://docs.google.com/forms/d/e/1FAIpQLSfMXPCIioVacaKKhpv_kqK1VFXuNuAMyeQ9w0BHZd5NKCXe4Q/viewform) to sign up for this workshop.
+
+[**Sign up for the DELPHI mailing list**](https://www.lists.utah.edu/wws/subscribe/delphi?previous_action=info) to stay in the loop about future workshops and funding opportunities.
+
+## General Information
+
+**What**: This workshop will introduce key concepts in geographical analysis and visualization, with a focus on identifying and dealing with spatial structure in geographic data. We will touch on spatial regression and prediction with kriging.
+
+**Who**: The course is aimed at graduate students, postdocs, staff, faculty, and other researchers across campus who are interested in learning how to use R for geographic analysis and visualization. Basic statistical knowledge and some familiarity with R are encouraged but not required to attend this workshop.
+
+**Requirements**: Participants must bring a laptop onto which they can [download R and Rstudio](https://posit.co/download/rstudio-desktop/) (and you should do so before the workshop).
+
+**Contact**: Please email andrew.george@hsc.utah.edu or brenna.kelly@hsc.utah.edu for more information.
+
+## Schedule
+
+Note that the schedule below is preliminary.
+
+
+| Time  | Topic     | Incomplete .qmd |  Complete .qmd |
+| ----:|:----|:---------------|:-----------------|
+| 9:00   | Introduction and Setup |   |   |
+| 9:30   | Working with Spatial Data |   | |
+| 10:15   | *Break* |   |    |
+| 10:30   | Spatial Functions |  |     |
+| 11:00   | Regression with Spatial Data | | |
+| 12:00  | *Break* | |    |
+| 12:15   | Spatial Prediction with Kriging | |  |
+| 1:00   | *End* | |    |
+
+
