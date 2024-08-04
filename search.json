@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Geographical Analysis & Visualization",
+    "section": "",
+    "text": "Registration: Use the following link to sign up for this workshop.\nSign up for the DELPHI mailing list to stay in the loop about future workshops and funding opportunities."
+  },
+  {
+    "objectID": "index.html#general-information",
+    "href": "index.html#general-information",
+    "title": "Geographical Analysis & Visualization",
+    "section": "General Information",
+    "text": "General Information\nWhat: This workshop will introduce key concepts in geographical analysis and visualization, with a focus on identifying and dealing with spatial structure in geographic data. We will touch on spatial regression and prediction with kriging.\nWho: The course is aimed at graduate students, postdocs, staff, faculty, and other researchers across campus who are interested in learning how to use R for geographic analysis and visualization. Basic statistical knowledge and some familiarity with R are encouraged but not required to attend this workshop.\nRequirements: Participants must bring a laptop onto which they can download R and Rstudio (and you should do so before the workshop).\nContact: Please email andrew.george@hsc.utah.edu or brenna.kelly@hsc.utah.edu for more information."
+  },
+  {
+    "objectID": "index.html#schedule",
+    "href": "index.html#schedule",
+    "title": "Geographical Analysis & Visualization",
+    "section": "Schedule",
+    "text": "Schedule\nNote that the schedule below is preliminary.\n\n\n\nTime\nTopic\nIncomplete .qmd\nComplete .qmd\n\n\n\n\n9:00\nIntroduction and Setup\n\n\n\n\n9:30\nWorking with Spatial Data\n\n\n\n\n10:15\nBreak\n\n\n\n\n10:30\nSpatial Functions\n\n\n\n\n11:00\nRegression with Spatial Data\n\n\n\n\n12:00\nBreak\n\n\n\n\n12:15\nSpatial Prediction with Kriging\n\n\n\n\n1:00\nEnd"
+  }
+]
