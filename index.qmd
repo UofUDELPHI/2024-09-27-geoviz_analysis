@@ -7,11 +7,11 @@ subtitle: "University of Utah"
 
 
 ::: {.callout-note appearance="simple" icon=false}
-**Date**: September 27 2024
+**Date**: September 27, 2024
 
 **Time**: 9:00 am -- 1:00 pm MDT
 
-**Location**: HELIX Rm - 1C202 - Narrowleaf
+**Location**: HELIX Rm 1C202 (Narrowleaf)
 
 **Instructor**: Brenna Kelly
 :::
