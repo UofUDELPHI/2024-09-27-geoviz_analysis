@@ -24,7 +24,7 @@ subtitle: "University of Utah"
 
 **What**: This workshop will introduce key concepts in geographical analysis and visualization, with a focus on identifying and dealing with spatial structure in geographic data. We will touch on spatial regression and prediction with kriging.
 
-**Who**: The course is aimed at graduate students, postdocs, staff, faculty, and other researchers across campus who are interested in learning how to use R for geographic analysis and visualization. Basic statistical knowledge and some familiarity with R are encouraged but not required to attend this workshop.
+**Who**: The course is aimed at graduate students, postdocs, staff, faculty, and other researchers across campus who are interested in learning how to use R for geographic analysis and visualization. Basic statistical knowledge and some familiarity with R are encouraged but not required to attend this workshop. 
 
 **Requirements**: Participants must bring a laptop onto which they can [download R and Rstudio](https://posit.co/download/rstudio-desktop/) (and you should do so before the workshop).
 
