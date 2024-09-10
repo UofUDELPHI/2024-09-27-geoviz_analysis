@@ -32,18 +32,16 @@ subtitle: "University of Utah"
 
 ## Schedule
 
-Note that the schedule below is preliminary.
-
 
 | Time  | Topic     | Incomplete .qmd |  Complete .qmd |
 | ----:|:----|:---------------|:-----------------|
 | 9:00   | Introduction and Setup |   |   |
-| 9:30   | Working with Spatial Data |   | |
-| 10:15   | *Break* |   |    |
-| 10:30   | Spatial Functions |  |     |
-| 11:00   | Regression with Spatial Data | | |
-| 12:00  | *Break* | |    |
-| 12:15   | Spatial Prediction with Kriging | |  |
-| 1:00   | *End* | |    |
+| 9:30   | **Hands-on:** Working with Spatial Data |   | |
+| 10:00   | **Hands-on:** Mapmaking |  |     |
+| 10:30   | *Break* |   |    |
+| 10:45   | Regression with Spatial Data | | |
+| 11:00  | **Hands-on:** Spatial Regression | |    |
+| 11:30   | *Break* |   |    |
+| 11:45   | **Hands-on:** Multilevel/hierarchical spatial regression | |  |
 
 
