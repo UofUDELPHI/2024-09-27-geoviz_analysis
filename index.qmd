@@ -13,7 +13,7 @@ subtitle: "University of Utah"
 
 **Location**: HELIX Rm 1C202 (Narrowleaf)
 
-**Instructor**: Brenna Kelly
+**Instructor**: Brenna Kelly & Simon Brewer
 :::
   
   **Registration**: Use the [following link](https://docs.google.com/forms/d/e/1FAIpQLSfMXPCIioVacaKKhpv_kqK1VFXuNuAMyeQ9w0BHZd5NKCXe4Q/viewform) to sign up for this workshop.
