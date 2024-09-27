@@ -1,5 +1,5 @@
 ---
-title: "04_multilevel spatial models"
+title: "14_multilevel spatial models solutions"
 author: "Brenna Kelly"
 date: "2024-09-10"
 output: html_document
@@ -22,7 +22,6 @@ Set up (carrying on from `03b_spatial regression.Rmd`):
 
 com <- st_read("data/comarea/ComArea_ACS14_f.shp")
 
-# predictor
 com$poverty_scaled <- com$Pov200P / 10
 
 # spatial structure

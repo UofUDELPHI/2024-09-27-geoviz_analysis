@@ -1,0 +1,275 @@
+---
+title: "13_spatial regression solutions"
+author: "Brenna Kelly"
+date: "2024-09-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tmap)
+library(spdep)
+library(spatialreg)
+library(RColorBrewer)
+
+```
+
+
+Basic spatial regression workflow:  
+- **Inspect** the data  
+- Define the **spatial structure** (neighbors) and create the **weight matrix**  
+- Check for spatial autocorrelation in the outcome (Moran's I)  
+- **Model 0:** Create an aspatial null model  
+-- Check for SA in the M0 residuals  
+-- Interpret  
+- **Model 1:** Create an aspatial model with covariates  
+-- Check for SA in the M1 residuals  
+-- Interpret  
+- **Model 2:** Choose a spatial regression method  
+-- Lag vs. error vs. hierarchical  
+-- Check for SA in the M2 spatial  
+-- Interpret  
+
+#### Inspect the data
+
+Read in the shapefile for Chicago communities (location: `data/comarea/ComArea_ACS14_f.shp`). We are interested in estimating the effect of poverty `Pov200P` on the preterm birth rate `PretBrth`. Plot the preterm birth rate with a color scale in the `RColorBrewer` library (using `display.brewer.all()` to choose one).
+
+```{r}
+
+com <- st_read("data/comarea/ComArea_ACS14_f.shp")
+
+hist(com$PretBrth)
+summary(com$PretBrth)
+cor.test(com$PretBrth, com$Pov200P)
+
+tm_shape(com) +
+  tm_polygons(col = "PretBrth", palette = "RdPu", 
+              style = "cont", lwd = 0)
+
+```
+
+#### Spatial structure  
+
+Does it look like there is spatial autocorrelation in the outcome? To confirm this statistically using Moran's I, we first need to define the **neighbor structure** and create the **spatial weight matrix**.
+
+```{r}
+
+nb <- poly2nb(com)
+com_nb_listw <- nb2listw(nb)
+
+```
+
+Visualize the spatial structure.
+
+```{r}
+
+coords <- st_coordinates(st_centroid(com))
+
+plot(com$geometry)
+plot(nb, coords, add = TRUE, col = "red")
+
+```
+
+
+#### SA in outcome
+
+Calculate **Moran's I** using `moran.test` with the arguments `alternative = "two.sided"` and `randomisation = TRUE`. Compare the results against `moran.mc`, which uses a Monte Carlo method to estimate significance with improved precision.
+
+```{r}
+
+moran.test(com$PretBrth, com_nb_listw,
+           alternative = "two.sided", 
+           randomisation = TRUE)
+
+moran.mc(com$PretBrth, com_nb_listw, nsim = 999,
+         alternative = 'greater')
+
+moran.plot(com$PretBrth, com_nb_listw, plot = TRUE,
+           xlab = "Preterm Birth Rate",
+           ylab = "Spatially Lagged Rate")
+
+````
+
+#### Null aspatial model
+
+- Create a linear model of the preterm birth rate.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+m0 <- lm(PretBrth ~ 1, data = com)
+
+summary(m0)
+
+
+com$res_m0 <- m0$residuals
+
+tm_shape(com) +
+  tm_polygons(col = "res_m0", palette = "Spectral", 
+              style = "cont", lwd = 0)
+
+moran.mc(com$res_m0, com_nb_listw, nsim = 999,
+         alternative = 'greater')
+
+```
+
+#### Aspatial model with covariate  
+
+- Scale the poverty variable for the regression.
+- Create a linear model of the preterm birth rate with poverty as a covariate.  
+- Check for structure in the residuals.
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+com$poverty_scaled <- com$Pov200P / 10
+
+m1 <- lm(PretBrth ~ poverty_scaled, data = com)
+
+summary(m1)
+
+
+com$res_m1 <- m1$residuals
+
+plot(com$res_m1, m1$fitted.values)
+
+tm_shape(com) +
+  tm_polygons(col = "res_m1", palette = "Spectral", 
+              style = "cont", size = 0.4, lwd = 0)
+
+moran.mc(com$res_m1, com_nb_listw, nsim = 999)
+
+
+```
+
+#### Spatial econometric models  
+- **error:** unexplained spatial variation; error which is correlated across spatial units  
+- **lag:** influence of neighboring values on unit values; a diffusion process  
+- **combination**
+
+#### Spatial error model
+- Create a spatial error model of the preterm birth rate with poverty as a covariate.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+m2 = errorsarlm(PretBrth ~ poverty_scaled,
+                data = com, 
+                com_nb_listw)
+summary(m2)
+
+com$res_m2 <- m2$residuals
+
+tm_shape(com) +
+  tm_polygons(col = "res_m2", palette = "Spectral", style = "cont", lwd = 0)
+ 
+moran.mc(com$res_m2, com_nb_listw, nsim = 999)
+
+```
+
+#### Spatial lag model
+- Create a spatial lag model of the preterm birth rate with poverty as a covariate.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+m3 = lagsarlm(PretBrth ~ poverty_scaled,
+              data = com, 
+              com_nb_listw)
+summary(m3)
+
+com$res_m3 <- m3$residuals
+
+tm_shape(com) +
+  tm_polygons(col = "res_m3", palette = "Spectral", style = "cont", lwd = 0)
+ 
+moran.mc(com$res_m3, com_nb_listw, nsim = 999)
+
+```
+
+#### Error *and* lag
+- Using `sacsarlm`, create a model which uses both lag and error structures.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+m4 = sacsarlm(PretBrth ~ poverty_scaled,
+              data = com, 
+              com_nb_listw)
+summary(m4)
+
+com$res_m4 <- m4$residuals
+
+tm_shape(com) +
+  tm_polygons(col = "res_m4", palette = "Spectral", style = "cont", lwd = 0)
+ 
+moran.mc(com$res_m4, com_nb_listw, nsim = 999)
+
+```
+
+#### Spatial Durbin error model  
+Within neighbors, correlation exists between errors and between covariates.  
+
+```{r}
+
+m5 = errorsarlm(PretBrth ~ poverty_scaled,
+                data = com, 
+                com_nb_listw,
+                etype = "emixed")
+summary(m5)
+
+com$res_m5 <- m5$residuals
+
+tm_shape(com) +
+  tm_polygons(col = "res_m5", palette = "Spectral", style = "cont", lwd = 0)
+ 
+moran.mc(com$res_m5, com_nb_listw, nsim = 999)
+
+```
+
+#### Spatial Durbin lag model  
+Within neighbors, correlation between outcome (diffusion) and correlation between covariates.  
+Modify the `lagsarlm` ode to include the argument `type = "mixed"`. Perform a visual check and statistical test of spatial structure in the residuals.  
+
+```{r}
+
+m6 = lagsarlm(PretBrth ~ poverty_scaled,
+              data = com, 
+              com_nb_listw,
+              type = "mixed")
+summary(m6)
+
+com$res_m6 <- m6$residuals
+
+tm_shape(com) +
+  tm_polygons(col = "res_m6", palette = "Spectral", style = "cont", lwd = 0)
+ 
+moran.mc(com$res_m6, com_nb_listw, nsim = 999)
+
+```
+
+Which model to interpret?
+
+```{r}
+
+AIC(m0)
+AIC(m1)
+AIC(m2)
+AIC(m3)
+AIC(m4)
+AIC(m5)
+AIC(m6)
+
+```
+
+

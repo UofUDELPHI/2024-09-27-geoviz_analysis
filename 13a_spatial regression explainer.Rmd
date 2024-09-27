@@ -1,0 +1,188 @@
+---
+title: "13a_spatial regression explainer"
+author: "Brenna Kelly"
+date: "2024-09-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(sf)
+library(tmap)
+library(INLA)
+library(spdep)
+
+```
+
+aspatial > spatial
+
+aspatial regression: null model
+
+```{r}
+
+#### set up
+scot <- st_read("data/scotlip/scotlip.shp")
+# scot <- scot[-c(6, 8, 11), ]
+
+tm_shape(scot) +
+  tm_polygons(col = "orange", border.col = "white")
+
+scot$cancer_SIR <- 100000 * scot$CANCER / scot$POP
+
+m1 <- glm(CANCER ~ offset(log(POP)), 
+          data = scot, family = poisson(link = "log"))
+
+summary(m1)
+
+#### period prevalence
+exp(m1$coefficients["(Intercept)"]) * 100000
+100000 * sum(scot$CANCER) / sum(scot$POP)
+
+```
+
+aspatial regression: inference
+
+```{r}
+
+cor.test(scot$AFF, scot$cancer_SIR)
+
+scot$AFF_scaled <- scot$AFF / 10 # increase from 0% to 10% AFF
+
+m1 <- glm(CANCER ~ AFF_scaled + offset(log(POP)), 
+          data = scot, family = poisson(link = "log"))
+
+```
+
+interpret
+
+```{r}
+
+# odds ratio for AFF
+exp(m1$coefficients["AFF_scaled"])
+# statistical significance
+summary(m1)
+
+```
+
+investigate spatial structure (visually)
+
+```{r}
+
+## map outcome and predictor
+Y <- tm_shape(scot) +
+  tm_polygons(col = "cancer_SIR", style = "cont", 
+              palette = "plasma", lwd = 0.25, border.col = "white")
+
+X <- tm_shape(scot) +
+  tm_polygons(col = "AFF", style = "cont", 
+              palette = "plasma", lwd = 0.25, border.col = "white")
+
+# does it look like there's spatial structure in the outcome
+tmap_arrange(Y, X)
+
+```
+
+investigate spatial structure (statistically)
+
+```{r}
+
+# is there spatial structure in the outcome
+nb <- poly2nb(scot)
+scot_listw <- nb2listw(nb, zero.policy = TRUE)
+moran.mc(scot$cancer_SIR, scot_listw, nsim = 999)
+
+# spatial structure in the error
+scot$error_m1 <- m1$residuals
+
+e <- tm_shape(scot) +
+  tm_polygons(col = "error_m1", style = "cont", 
+              palette = "Spectral", lwd = 0.25, border.col = "white")
+
+# does it look like there's spatial structure in the error
+tmap_arrange(Y, e)
+
+# is there spatial structure in the error
+moran.mc(scot$error_m1, scot_listw, nsim = 999)
+
+```
+
+spatial model.
+
+```{r}
+
+# spatial structure
+nb <- poly2nb(scot)
+nb2INLA("map.adj", nb)
+g <- inla.read.graph(filename = "map.adj")
+
+scot$idarea <- 1:nrow(scot)
+scot$idarea_2 <- 1:nrow(scot)
+
+# model
+m2 <- inla(CANCER ~ AFF_scaled + offset(log(POP)) +
+             f(idarea, model = "bym2", graph = g), 
+           data = scot,  family = "poisson", 
+           control.family = list(link = "log"),
+           control.compute = list(dic = TRUE, waic = TRUE))
+
+m2$waic$waic
+
+```
+
+investigate spatial structure (visually)
+
+```{r}
+
+## map error
+scot$error_m2 <- m2$residuals$deviance.residuals
+
+e_spatial <- tm_shape(scot) +
+  tm_polygons(col = "error_m2", style = "cont", 
+              palette = "Spectral", lwd = 0.25, border.col = "white")
+
+# does it look like there's spatial structure in the error
+tmap_arrange(e, e_spatial)
+
+```
+
+investigate spatial structure (statistically)
+
+```{r}
+
+# is there spatial structure
+moran.mc(scot$error_m2, scot_listw, nsim = 999)
+
+```
+
+interpretation
+
+```{r}
+
+# odds ratio for AFF
+exp(m2$summary.fixed$mean[2])
+# statistical significance
+1 - inla.pmarginal(0.95, m2$marginals.fixed$AFF_scaled)
+
+```
+
+error vs. lag
+-  error: error which is correlated across spatial units  
+-  lag: influence of neighboring values on unit values  
+
+```{r}
+# 
+# lm1 <- lm(cancer_SIR ~ AFF, data = scot)
+# 
+# lmt <- lm.LMtests(lm1, scot_listw, test = c("LMerr","LMlag"))
+# # best explanation from RSerr
+# 
+# summary(lmt)
+
+```
+
+
+

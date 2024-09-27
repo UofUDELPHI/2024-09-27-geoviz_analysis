@@ -1,0 +1,182 @@
+---
+title: "03_spatial regression"
+author: "Brenna Kelly"
+date: "2024-09-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tmap)
+library(spdep)
+library(RColorBrewer)
+
+```
+
+
+Basic spatial regression workflow:  
+- **Inspect** the data  
+- Define the **spatial structure** (neighbors) and create the **weight matrix**  
+- Check for spatial autocorrelation in the outcome (Moran's I)  
+- **Model 0:** Create an aspatial null model  
+-- Check for SA in the M0 residuals  
+-- Interpret  
+- **Model 1:** Create an aspatial model with covariates  
+-- Check for SA in the M1 residuals  
+-- Interpret  
+- **Model 2:** Choose a spatial regression method  
+-- Lag vs. error vs. hierarchical  
+-- Check for SA in the M2 spatial  
+-- Interpret  
+
+#### Inspect the data
+
+Read in the shapefile for Chicago communities (location: `data/comarea/ComArea_ACS14_f.shp`). We are interested in estimating the effect of poverty `Pov200P` on the preterm birth rate `PretBrth`. Plot the preterm birth rate with a color scale in the `RColorBrewer` library (using `display.brewer.all()` to choose one).
+
+```{r}
+
+
+
+```
+
+#### Spatial structure  
+
+Does it look like there is spatial autocorrelation in the outcome? To confirm this statistically using Moran's I, we first need to define the **neighbor structure** using `poly2nb()` and create the **spatial weight matrix** using `nb2listw()`.
+
+```{r}
+
+
+
+```
+
+Visualize the spatial structure. First extract the coordinates of the community areas using `st_coordinates(st_centroid())`. Then plot the `com` geometry, and add `plot(nb, coords)`.
+
+```{r}
+
+
+
+```
+
+
+#### SA in outcome
+
+Calculate **Moran's I** using `moran.test`, which requires a variable in the data and the weight matrix. We will also add the argument `randomisation = TRUE`. Compare the results against `moran.mc`, which uses a Monte Carlo method to estimate significance with improved precision (add `nsim = 999` and `alternative = "greater"`).
+
+```{r}
+
+
+
+```
+
+Using `moran.plot`, we can plot the spatial autocorrelation:
+
+```{r}
+
+moran.plot(com$PretBrth, com_nb_listw, plot = TRUE,
+           xlab = "Preterm Birth Rate",
+           ylab = "Spatially Lagged Rate")
+
+````
+
+#### Null aspatial model
+
+- Create a linear model of the preterm birth rate.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+
+
+```
+
+#### Aspatial model with covariate  
+
+- Scale the poverty variable for the regression.
+- Create a linear model of the preterm birth rate with poverty as a covariate.  
+- Check for structure in the residuals.
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+
+
+
+```
+
+#### Spatial econometric models  
+- **error:** unexplained spatial variation; error which is correlated across spatial units  
+- **lag:** influence of neighboring values on unit values; a diffusion process  
+- **combination**
+
+#### Spatial error model
+- Use `errorsarlm` to create a spatial error model of the preterm birth rate with poverty as a covariate. This only additional argument required is the weight matrix.    
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+
+
+```
+
+#### Spatial lag model
+- Use `lagsarlm` to create a spatial lag model of the preterm birth rate with poverty as a covariate.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+
+
+```
+
+#### Error *and* lag
+- Using `sacsarlm`, create a model which uses both lag and error structures.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+
+
+```
+
+#### Spatial Durbin error model  
+Within neighbors, correlation between errors and correlation between covariates.
+- Using `errorsarlm` with the additional argument `etype = "emixed"`, create a spatial Durbin error model.  
+- Plot the spatial structure of the residuals.  
+- Check for SA in the residuals.  
+
+```{r}
+
+
+
+```
+
+#### Spatial Durbin lag model  
+Within neighbors, correlation between outcome (diffusion) and correlation between covariates.  
+- Modify the `lagsarlm` ode to include the argument `type = "mixed"`.  
+- Perform a visual check and statistical test of spatial structure in the residuals.  
+
+```{r}
+
+
+
+```
+
+Which model to interpret?
+
+```{r}
+
+
+
+```
+
+

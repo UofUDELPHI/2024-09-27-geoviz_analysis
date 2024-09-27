@@ -1,5 +1,5 @@
 ---
-title: "01_spatial data"
+title: "11_spatial data solutions"
 author: "Brenna Kelly"
 date: "2024-09-10"
 output: html_document
@@ -38,7 +38,7 @@ Check the contents of the `data/la_ozone` folder. This dataset contains July 199
 
 ```{r}
 
-
+list.files("data/la_ozone")
 
 ```
 
@@ -52,7 +52,9 @@ Read in the shapefile `la_o3.shp` using `st_read()`, then check its `class()`.
 
 ```{r}
 
+la_o3 <- st_read("data/la_ozone/la_o3.shp")
 
+class(la_o3)
 
 ```
 
@@ -60,7 +62,9 @@ You can inspect the contents like a normal dataframe, but we can also map the ge
 
 ```{r}
 
+head(la_o3)
 
+plot(la_o3$geometry, col = "red")
 
 ```
 
@@ -68,7 +72,7 @@ Plot the data from a column with the geometry using the syntax `plot(df["col"])`
 
 ```{r}
 
-
+plot(la_o3["MAXDAY"])
 
 ```
 
@@ -76,7 +80,9 @@ Next read in `data/california/ca_counties.shp`, which contains polygons for coun
 
 ```{r}
 
+ca_counties <- st_read("data/california/ca_counties.shp")
 
+plot(ca_counties$geometry)
 
 ```
 
@@ -84,7 +90,8 @@ Let's map the LA and California data together using the `add = TRUE` argument.
 
 ```{r}
 
-
+plot(ca_counties$geometry)
+plot(la_o3$geometry, col = "red", add = TRUE)
 
 ```
 
@@ -99,7 +106,11 @@ You can check the coordinate reference system of a simple feature using `st_crs(
 
 ```{r}
 
+st_crs(ca_counties)
 
+st_crs(la_o3)
+
+st_crs(ca_counties) == st_crs(la_o3)
 
 ```
 
@@ -107,7 +118,7 @@ To fix this, we need to transform one simple feature to the CRS of the other usi
 
 ```{r}
 
-
+la_o3 <- st_transform(la_o3, crs = st_crs(ca_counties))
 
 ```
 
@@ -115,25 +126,37 @@ Check that the CRS matches, then try plotting both features together again.
 
 ```{r}
 
+st_crs(la_o3) == st_crs(ca_counties)
 
+# map together
+plot(ca_counties$geometry)
+plot(la_o3$geometry, col = "red", add = TRUE)
 
 ```
 
-**Optional:** transform the California data to two different coordinate reference systems (crs = 3395, crs = 4326) and compare to the original.
+**Optional:** transform the California data to two different coordinate reference systems (crs = 3395) and compare.
 
 ```{r}
 
+ca_mercator <- st_transform(ca_counties, crs = 3395)
+ca_albers <- st_transform(ca_counties, crs = 4326)
+ca_original <- ca_counties
 
+plot(ca_mercator$geometry)
+plot(ca_albers$geometry)
+plot(ca_original$geometry)
 
 ```
 
 ### Creating and writing `simple features`  
 
-Often you'll find coordinates in a data set, but it hasn't been converted to a simple feature. Read in the `spiral.csv` (location: `data/spiral/spirals.csv`).
+Often you'll find coordinates in a data set, but it hasn't been converted to a simple feature.
 
 ```{r}
 
+spiral <- read.csv("data/spiral/spirals.csv")
 
+head(spiral)
 
 ```
 
@@ -141,7 +164,7 @@ We could simply plot the x- and y-coordinates, but without a CRS, we cannot comb
 
 ```{r}
 
-
+plot(spiral$x, spiral$y)
 
 ```
 
@@ -149,7 +172,8 @@ To create a simple feature, we use the `st_as_sf()` function. This requires us t
 
 ```{r}
 
-
+spiral_sf <- st_as_sf(spiral, coords = c("x", "y"),
+                      crs = 4326)
 
 ```
 
@@ -157,7 +181,7 @@ Now that we have our `spiral_sf`, we can plot the geometry.
 
 ```{r}
 
-
+plot(spiral_sf$geometry)
 
 ```
 
@@ -165,7 +189,7 @@ To save an `sf` object, we use the `st_write()` function, similar to `write.csv(
 
 ```{r}
 
-
+st_write(spiral_sf, "data/spiral/spiral_sf.shp", append = FALSE)
 
 ```
 
@@ -175,7 +199,11 @@ Next read in the shapefile of UK Local Authority Districts (located at `data/uk_
 
 ```{r}
 
+uk <- st_read("data/uk_pubs/uk.shp")
 
+head(uk)
+
+plot(uk$geometry)
 
 ```
 
@@ -183,7 +211,11 @@ Map the data using the syntax `plot(df["col"])`.
 
 ```{r}
 
+plot(uk["LAD24NM"])
 
+plot(uk["LAT"])
+
+plot(uk["LONG"])
 
 ```
 
@@ -191,7 +223,9 @@ Read in the shapefile for pubs in the UK (location: `data/uk_pubs/pubs.shp`), an
 
 ```{r}
 
+pubs <- st_read("data/uk_pubs/pubs.shp")
 
+st_crs(pubs) == st_crs(uk)
 
 ```
 
@@ -199,7 +233,14 @@ Plot the UK district polygons and pubs points together using the `add = TRUE` ar
 
 ```{r}
 
+plot(uk$geometry)
+plot(pubs$geometry, col = "goldenrod", add = TRUE) # col = alpha("gold", 0.1)
 
+# check the contents visually
+plot(pubs["region"])
+
+plot(uk$geometry)
+plot(pubs["region"], add = TRUE)
 
 ```
 
@@ -207,7 +248,9 @@ Inspect the district names (`LAD24NM`) in the UK dataset, and choose one distric
 
 ```{r}
 
+sort(unique(uk$LAD24NM))
 
+highland <- subset(uk, LAD24NM == "Highland")
 
 ```
 
@@ -215,7 +258,8 @@ Plot the UK dataset and your chosen district together.
 
 ```{r}
 
-
+plot(uk$geometry)
+plot(highland$geometry, col = "seagreen", add = TRUE)
 
 ```
 
@@ -223,7 +267,10 @@ You can filter the pubs to only include those contained within your chosen distr
 
 ```{r}
 
+highland_pubs <- st_filter(pubs, highland)
 
+plot(highland$geometry)
+plot(highland_pubs$geometry, col = "goldenrod", add = TRUE)
 
 ```
 

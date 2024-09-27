@@ -14,244 +14,201 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 
+library(sf)
 library(tmap)
 library(dplyr)
+library(units)
+library(tufte)
+library(ggplot2)
+library(stringr)
+library(RColorBrewer)
 
 ```
 
-The goal of this lab is to make simple (but effective) maps using the `tmap` package.
+The goal of this lab is to make simple but effective maps using the `tmap` package.
 
-### What is an effective map?  
+### What makes an effective map?  
 
-Like any figure, a map should communicate a clear message as an honest representation of the data.
+> "Above all else, show the data."
+>
+> `r tufte::quote_footer('Edward Tufte')`
+
+Like any visualization, a map should communicate a clear message as an honest representation of the data.
 
 ```{r}
-
-plot(uk$geometry)
-plot(pubs$geometry, col = alpha("goldenrod", 0.1), add = TRUE)
-
-pubs_uk <- st_join(pubs, uk, join = st_intersects)
-
-pubs_uk_agg <- pubs_uk |> 
-  count(LAD24NM) |>
-  rename(pub_count = n)
-pubs_uk_poly <- merge(uk, st_drop_geometry(pubs_uk_agg), by = "LAD24NM")
-
-tm_shape(pubs_uk_poly) +
-  tm_polygons(col = "pub_count", style = "cont", palette = "viridis", 
-              border.col = "white", lwd = 0.25, title = "Pub Count") +
-  tm_layout(legend.position = c(0.7, 0.8), frame = FALSE)
-
-pubs_uk_poly$land_area <- st_area(pubs_uk_poly)
-
-pubs_uk_poly$pubs_per_10sqkm <- pubs_uk_poly$pub_count / (pubs_uk_poly$land_area / 10000)
-
-pubs_uk_poly[which(pubs_uk_poly$pubs_per_10sqkm == max(pubs_uk_poly$pubs_per_10sqkm)), ]
-
-tm_shape(pubs_uk_poly) +
-  tm_polygons(col = "pubs_per_10sqkm", style = "cont", palette = "viridis", lwd = 0) +
-  tm_layout(legend.position = c(0.7, 0.8), frame = FALSE)
-
-tm_shape(pubs_uk_poly) +
-  tm_polygons(col = "pubs_per_10sqkm", style = "quantile", palette = "viridis", lwd = 0) +
-  tm_layout(legend.position = c(0.7, 0.8), frame = FALSE)
-
-tm_shape(pubs_uk_poly) +
-  tm_polygons(col = "pubs_per_10sqkm", style = "log10", palette = "-viridis", lwd = 0) +
-  tm_layout(legend.position = c(0.7, 0.8), frame = FALSE)
-
-hist(pubs_uk_poly$pub_count)
-
-# com <- st_read("/Users/brenna/Downloads/comarea/ComArea_ACS14_f.shp")
-# com_pt <- st_centroid(com)
-
-
-## geographic mapping with tmap
 
 uk <- st_read("data/uk_pubs/uk.shp")
 pubs <- st_read("data/uk_pubs/pubs.shp")
 
-tm_shape(uk) +
-  tm_polygons(col = "white", border.col = "black") +
-  tm_shape(pubs) +
-  tm_dots(col = "gold", alpha = 0.1)
+# a simple (but not very useful) representation
+plot(uk$geometry)
+plot(pubs$geometry, col = "goldenrod", add = TRUE) # col = alpha("goldenrod", 0.1),
 
-pubs$inn <- as.factor(pubs$inn)
+# we can aggregate pubs to the district level
+pubs_uk <- st_join(pubs, uk,
+                   join = st_intersects) |>
+  count(LAD24NM) |>
+  rename(pub_count = n)
+pubs_uk_poly <- merge(uk, st_drop_geometry(pubs_uk), by = "LAD24NM")
 
-tm_shape(uk) +
-  tm_polygons(col = "white", border.col = "black") +
-  tm_shape(pubs) +
-  tm_dots(col = "region", alpha = 0.25)
+# and map pubs within districts
+tm_shape(pubs_uk_poly) +
+  tm_polygons(col = "pub_count", style = "cont", palette = "plasma",
+              border.col = "white", lwd = 0.2, title = "Pub Count") +
+  tm_layout(legend.position = c(0.8, 0.5), frame = FALSE)
 
-```
 
-### the choropleth map
+# transform the count of pubs to density of pubs
+pubs_uk_poly$land_area_sqkm <- st_area(pubs_uk_poly)
+pubs_uk_poly$land_area_sqkm <- set_units(pubs_uk_poly$land_area_sqkm, km^2)
 
-```{r}
+pubs_uk_poly$pubs_per_sqkm <- pubs_uk_poly$pub_count / pubs_uk_poly$land_area_sqkm
 
-# choropleth with cancer data
-com <- st_read("/Users/brenna/Downloads/comarea/ComArea_ACS14_f.shp")
+pubs_uk_poly[which(pubs_uk_poly$pubs_per_sqkm ==
+                     max(pubs_uk_poly$pubs_per_sqkm)), ]$LAD24NM
 
-# class intervals:
-# https://www.rdocumentation.org/packages/classInt/versions/0.1-7/topics/classIntervals
+# and map the pub density
+tm_shape(pubs_uk_poly) +
+  tm_polygons(col = "pubs_per_sqkm", palette = "plasma",
+              border.col = "white", lwd = 0.2, title = expression("Pubs / km" ^ 2)) +
+  tm_layout(legend.position = c(0.8, 0.5), frame = FALSE)
 
-summary(com$BrstCancr)
-ggplot(com, aes(x = BrstCancr)) +
+summary(pubs_uk_poly$pubs_per_sqkm)
+
+ggplot(pubs_uk_poly, aes(x = pubs_per_sqkm)) +
   geom_histogram()
 
-# calculate quantiles
-quantiles <- quantile(com$BrstCancr, probs = c(0, 0.2, 0.4, 0.6, 0.8, 1))
+# map quantiles
+tm_shape(pubs_uk_poly) +
+  tm_polygons(col = "pubs_per_sqkm", style = "quantile", palette = "plasma",
+              border.col = "white", lwd = 0.2, title = expression("Pubs / km" ^ 2)) +
+  tm_layout(legend.position = c(0.8, 0.5), frame = FALSE)
 
-# Assign each observations to a quantile range
-com$bc_quantile <- cut(com$BrstCancr, breaks = quantiles, 
-                       labels = c("0-0.2", "0.2-0.4", "0.4-0.6",
-                                  "0.6-0.8", "0.8-1.0"),
-                       include.lowest = TRUE)
+# calculate deciles
+pub_breaks <- drop_units(
+  quantile(pubs_uk_poly$pubs_per_sqkm,
+           seq(from = 0, to = 1, by = 0.1))
+)
+# clean labels
+break_labels = paste("≤", as.character(round(pub_breaks, 2)[-1] |>
+                                         str_pad(width = 4, side = "right", pad = "0")))
 
-# what the distribution looks like
-ggplot(com, aes(x = BrstCancr, fill = teen_birth_quantile)) +
-  geom_histogram() +
-  scale_fill_viridis_d() +
-  xlab("Teen birth rate, per 1000 women aged 15-19") +
-  ylab("Count")
+# map with deciles
+tm_shape(pubs_uk_poly) +
+  tm_polygons(col = "pubs_per_sqkm", palette = "plasma", breaks = pub_breaks,
+              labels = break_labels, border.col = "white", lwd = 0.2,
+              title = expression("Pubs / km" ^ 2)) +
+  tm_layout(legend.position = c(0.8, 0.5), frame = FALSE)
+
 
 ```
+
+### `tmap` syntax
+
+We will plot the UK data as `polygons` and the pubs data as `dots`, then plot them together.
 
 ```{r}
 
-# default
-tm_shape(com) +
-  tm_polygons(col = "BrstCancr",
-              palette = "viridis", lwd = 0) +
-  tm_layout(title.position = c(0.05, 0.6))
+tm_shape(uk) +
+  tm_polygons()
 
-# other options:
-# sd, equal, quantile, kmeans, hclust, bclust, fisher, log10, cont
+tm_shape(pubs) +
+  tm_dots()
 
-# all options
-int_pretty <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "pretty",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "pretty", title.position = c(0.05, 0.6))
+tm_shape(uk) +
+  tm_polygons() +
+  tm_shape(pubs) +
+  tm_dots()
 
-int_sd <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "sd",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "sd", title.position = c(0.05, 0.6))
-
-int_equal <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "equal",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "equal", title.position = c(0.05, 0.6))
-
-int_quantile <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "quantile",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "quantile", title.position = c(0.05, 0.6))
-
-int_kmeans <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "kmeans",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "kmeans", title.position = c(0.05, 0.6))
-
-int_hclust <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "hclust",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "hclust", title.position = c(0.05, 0.6))
-
-int_bclust <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "bclust",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "bclust", title.position = c(0.05, 0.6))
-
-int_fisher <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "fisher",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "fisher", title.position = c(0.05, 0.6))
-
-int_log10 <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "log10",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "log10", title.position = c(0.05, 0.6))
-
-int_cont <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont",  
-              palette = "viridis", lwd = 0) +
-  tm_layout(title = "cont", title.position = c(0.05, 0.6))
-
-tmap_arrange(int_pretty, int_sd, int_equal, 
-             int_quantile, int_kmeans, int_hclust,
-             int_fisher, int_bclust, #int_log10, 
-             int_cont, ncol = 3)
 ```
+
+We'll try changing the `tm_polygon()` arguments `col = ` and `border.col = `. For `tm_dots()`, we'll modify the `col = `, `palette = `, `alpha = `, and `title = ` arguments. In addition, add the following line: `tm_layout(legend.position = c(0.8, 0.5), frame = FALSE)`.
 
 ```{r}
 
-# BORDERS
 
-## Using `tmap`, create four maps of the variable `TeenBirth` in the `com` dataset. Use `palette = "viridis"` and the `style` (class interval) of your choice.
-## - map 1: call this `border_default`
-## - map 2: call this `border_black` add the argument `border.col = "black"`
-## - map 3: call this `border_white` add the argument `border.col = "white"`
-## - map 4: call this `border_none` add the argument `lwd = 0`
-## compare all four maps using tmap_arrange()
 
-border_default <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", 
-              palette = "viridis")
-
-border_black <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", 
-              palette = "viridis", border.col = "black")
-
-border_white <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", 
-              palette = "viridis", border.col = "white")
-
-border_none <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", 
-              palette = "viridis", lwd = 0)
-
-tmap_arrange(border_default, border_black, 
-             border_white, border_none, ncol = 2)
 ```
+
+### The choropleth map
+
+A choropleth represents the geographic pattern of statistical variables using color to signify the value in a given area. Usually this is done using **class intervals**, which we specify using the `style = ` argument. The default class interval for `tmap` is `style = "pretty"`, which chooses class intervals which are likely to be legible. Other options include:
+"sd", "equal", "quantile", "kmeans", "hclust", "bclust", "fisher", "log10", and "cont".
+
+Read in the `ComArea_ACS14_f.shp` file (located at `data/comarea/ComArea_ACS14_f.shp`), which contains health and socioeconomic indicators for community areas in Chicago from 2013. Check the distribution of the `BrstCancr` variable.
 
 ```{r}
-# MACH BANDS
 
-# grayscale
-lwd_wide <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont", lwd = 2,
-              palette = "Greys", border.col = "white")
 
-lwd_default <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont",
-              palette = "Greys", border.col = "white")
-
-lwd_none <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont",
-              palette = "Greys", lwd = 0)
-
-tmap_arrange(lwd_wide, lwd_default, lwd_none, ncol = 3)
 
 ```
 
+Create a choropleth of the breast cancer mortality rate using `palette = "viridis"` and `lwd = 0`.
 
 ```{r}
-# viridis
-lwd_wide <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont", lwd = 2,
-              palette = "viridis", border.col = "white")
 
-lwd_default <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont",
-              palette = "viridis", border.col = "white")
 
-lwd_none <- tm_shape(com) +
-  tm_polygons(col = "TeenBirth", style = "cont",
-              palette = "viridis", lwd = 0)
 
-tmap_arrange(lwd_wide, lwd_default, lwd_none, ncol = 3)
+```
+
+Modify your code to use an alternative class interval style. Compare with your neighbor.
+
+```{r}
+
+
+
+```
+
+> "At the heart of quantitative reasoning is a single question: Compared to what?"
+>
+> `r tufte::quote_footer('Edward Tufte')`
+
+Modify your code above:  
+- Plot the variable `TeenBirth`  
+- Remove the `lwd = 0` argument  
+- Set `style = "cont"`  
+Name this object **border_default**.
+
+```{r}
+
+
+
+```
+
+Now create three more maps:  
+- **border_black**: add the argument `border.col = "black"`  
+- **border_white**: add the argument `border.col = "white"`  
+- **border_none**: add the argument `lwd = 0`  
+Compare all four maps using `tmap_arrange()`
+
+```{r}
+
+
+
+```
+
+Modify your code with the `lwd = ` argument to create the following maps:
+- **lwd_wide**: add the argument `lwd = 2`  
+- **lwd_default**: drop the `lwd = ` argument  
+- **lwd_non**: add the argument `lwd = 0`  
+Compare all three maps using `tmap_arrange()`
+
+```{r}
+
+
+
 ```
 
 
+#### Mapping populations
+
+We have plotted the community areas based on their boundaries (`tm_polygons()`), but we can also use `tm_dots(size = "Pop2014)` to plot the the areas according to their population size. Compare the two maps using `tmap_arrange()`.
+
+```{r}
+
+
+
+```
+
+
+[Class intervals documentation](https://www.rdocumentation.org/packages/classInt/versions/0.1-7/topics/classIntervals)
